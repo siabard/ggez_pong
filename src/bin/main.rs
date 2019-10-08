@@ -5,13 +5,12 @@ use ggez::input::keyboard::{KeyCode, KeyMods};
 use ggez::timer;
 use ggez::{graphics, Context, ContextBuilder, GameResult};
 
-use std::cmp;
 use std::env;
 use std::path;
 
 use ggez::nalgebra as na;
 
-use rand::prelude::*;
+use ggez_pong::*;
 
 /// constants
 /// screen width & height
@@ -24,14 +23,14 @@ const PADDLE_SPEED: f32 = 200.0;
 /// Game state
 struct MainState {
     message: graphics::Text,
+
     player_score_1: u32,
     player_score_2: u32,
-    player_y_1: i32,
-    player_y_2: i32,
-    ball_x: f32,
-    ball_y: f32,
-    ball_dx: f32,
-    ball_dy: f32,
+
+    player_1: paddle::Paddle,
+    player_2: paddle::Paddle,
+    ball: ball::Ball,
+
     game_state: String,
 }
 
@@ -40,31 +39,30 @@ impl MainState {
         let font = graphics::Font::new(ctx, "/NanumGothic.ttf")?;
         let message = graphics::Text::new(("Hello Pong!", font, 12.0));
 
+        let player_1 = paddle::Paddle::new(10., 30., 5., 20., SCREEN_WIDTH, SCREEN_HEIGHT);
+        let player_2 = paddle::Paddle::new(
+            SCREEN_WIDTH - 10.,
+            SCREEN_HEIGHT - 30.,
+            5.,
+            20.,
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT,
+        );
         let player_score_1: u32 = 0;
         let player_score_2: u32 = 0;
-        let player_y_1: i32 = 30;
-        let player_y_2: i32 = SCREEN_HEIGHT as i32 - 50;
+        let ball = ball::Ball::new(SCREEN_WIDTH / 2.0 - 2.0, SCREEN_HEIGHT / 2.0 - 2.0, 4., 4.);
 
-        let mut rng = rand::thread_rng();
-
-        let ball_x = SCREEN_WIDTH / 2.0 - 2.0;
-        let ball_y = SCREEN_HEIGHT / 2.0 - 2.0;
-        let ball_dx = match rng.gen_range(0, 2) {
-            1 => 100.,
-            _ => -100.,
-        };
-        let ball_dy = rng.gen_range(-50., 50.) * 1.5;
         let game_state = "start".to_owned();
         let s = MainState {
             message,
+
             player_score_1,
             player_score_2,
-            player_y_1,
-            player_y_2,
-            ball_x,
-            ball_y,
-            ball_dx,
-            ball_dy,
+
+            player_1,
+            player_2,
+            ball,
+
             game_state,
         };
         Ok(s)
@@ -77,31 +75,27 @@ impl EventHandler for MainState {
         let dt = timer::duration_to_f64(timer::delta(ctx));
 
         if ggez::input::keyboard::is_key_pressed(ctx, KeyCode::Up) {
-            self.player_y_2 = cmp::max(0, self.player_y_2 - (PADDLE_SPEED as f64 * dt) as i32);
-        }
-
-        if ggez::input::keyboard::is_key_pressed(ctx, KeyCode::Down) {
-            self.player_y_2 = cmp::min(
-                (SCREEN_HEIGHT - 20.) as i32,
-                self.player_y_2 + (PADDLE_SPEED as f64 * dt) as i32,
-            );
+            self.player_2.set_dy(PADDLE_SPEED * -1.);
+        } else if ggez::input::keyboard::is_key_pressed(ctx, KeyCode::Down) {
+            self.player_2.set_dy(PADDLE_SPEED);
+        } else {
+            self.player_2.set_dy(0.);
         }
 
         if ggez::input::keyboard::is_key_pressed(ctx, KeyCode::W) {
-            self.player_y_1 = cmp::max(0, self.player_y_1 - (PADDLE_SPEED as f64 * dt) as i32);
-        }
-
-        if ggez::input::keyboard::is_key_pressed(ctx, KeyCode::S) {
-            self.player_y_1 = cmp::min(
-                (SCREEN_HEIGHT - 20.) as i32,
-                self.player_y_1 + (PADDLE_SPEED as f64 * dt) as i32,
-            );
+            self.player_1.set_dy(PADDLE_SPEED * -1.);
+        } else if ggez::input::keyboard::is_key_pressed(ctx, KeyCode::S) {
+            self.player_1.set_dy(PADDLE_SPEED);
+        } else {
+            self.player_1.set_dy(0.);
         }
 
         if self.game_state == "play" {
-            self.ball_x = self.ball_x + (self.ball_dx as f64 * dt) as f32;
-            self.ball_y = self.ball_y + (self.ball_dy as f64 * dt) as f32;
+            self.ball.update(dt);
         }
+
+        self.player_1.update(dt);
+        self.player_2.update(dt);
 
         Ok(())
     }
@@ -121,28 +115,10 @@ impl EventHandler for MainState {
         let dest_point = na::Point2::new((SCREEN_WIDTH - span) / 2.0, 20.0);
         graphics::draw(ctx, &self.message, (dest_point, 0.0, graphics::WHITE))?;
 
-        // MeshBuilder 를이용해서 여러 개를 한번에 출력
-        let mb = &mut graphics::MeshBuilder::new();
+        self.player_1.render(ctx).unwrap();
+        self.player_2.render(ctx).unwrap();
 
-        mb.rectangle(
-            graphics::DrawMode::fill(),
-            graphics::Rect::new(10., self.player_y_1 as f32, 5., 20.),
-            graphics::WHITE,
-        );
-        mb.rectangle(
-            graphics::DrawMode::fill(),
-            graphics::Rect::new(SCREEN_WIDTH - 10., self.player_y_2 as f32, 5., 20.),
-            graphics::WHITE,
-        );
-        mb.rectangle(
-            graphics::DrawMode::fill(),
-            graphics::Rect::new(self.ball_x, self.ball_y, 4., 4.),
-            graphics::WHITE,
-        );
-
-        let mesh = mb.build(ctx)?;
-
-        graphics::draw(ctx, &mesh, graphics::DrawParam::new())?;
+        self.ball.render(ctx).unwrap();
 
         // 점수를 출력하는 부분
 
