@@ -47,13 +47,13 @@ impl MainState {
 
         let mut rng = rand::thread_rng();
 
-        let ball_x = SCREEN_WIDTH / 2.0;
-        let ball_y = SCREEN_HEIGHT / 2.0;
+        let ball_x = SCREEN_WIDTH / 2.0 - 2.0;
+        let ball_y = SCREEN_HEIGHT / 2.0 - 2.0;
         let ball_dx = match rng.gen_range(0, 2) {
             1 => 100.,
             _ => -100.,
         };
-        let ball_dy = rng.gen_range(-50., 50.);
+        let ball_dy = rng.gen_range(-50., 50.) * 1.5;
         let game_state = "start".to_owned();
         let s = MainState {
             message,
@@ -101,14 +101,6 @@ impl EventHandler for MainState {
         if self.game_state == "play" {
             self.ball_x = self.ball_x + (self.ball_dx as f64 * dt) as f32;
             self.ball_y = self.ball_y + (self.ball_dy as f64 * dt) as f32;
-
-            println!(
-                "{} + {} - {} + {}",
-                self.ball_x,
-                self.ball_dx as f64 * dt,
-                self.ball_y,
-                self.ball_dy as f64 * dt
-            );
         }
 
         Ok(())
@@ -119,6 +111,12 @@ impl EventHandler for MainState {
         graphics::clear(ctx, [40. / 255., 45. / 255., 52. / 255., 1.0].into());
 
         // 화면에 출력하는 부분
+        let font = graphics::Font::new(ctx, "/NanumGothic.ttf")?;
+        self.message = graphics::Text::new((
+            "Hello ".to_owned() + &self.game_state + " state",
+            font,
+            12.0,
+        ));
         let span = *&self.message.width(ctx) as f32;
         let dest_point = na::Point2::new((SCREEN_WIDTH - span) / 2.0, 20.0);
         graphics::draw(ctx, &self.message, (dest_point, 0.0, graphics::WHITE))?;
@@ -147,28 +145,30 @@ impl EventHandler for MainState {
         graphics::draw(ctx, &mesh, graphics::DrawParam::new())?;
 
         // 점수를 출력하는 부분
-        let font = graphics::Font::new(ctx, "/NanumGothic.ttf")?;
-        let score_1 = graphics::Text::new((self.player_score_1.to_string(), font, 40.0));
-        let score_2 = graphics::Text::new((self.player_score_2.to_string(), font, 40.0));
 
-        graphics::draw(
-            ctx,
-            &score_1,
-            (
-                na::Point2::new(SCREEN_WIDTH / 2.0 - 50.0, SCREEN_HEIGHT / 3.0),
-                0.0,
-                graphics::WHITE,
-            ),
-        )?;
-        graphics::draw(
-            ctx,
-            &score_2,
-            (
-                na::Point2::new(SCREEN_WIDTH / 2.0 + 30.0, SCREEN_HEIGHT / 3.0),
-                0.0,
-                graphics::WHITE,
-            ),
-        )?;
+        if self.game_state == "start" {
+            let score_1 = graphics::Text::new((self.player_score_1.to_string(), font, 40.0));
+            let score_2 = graphics::Text::new((self.player_score_2.to_string(), font, 40.0));
+
+            graphics::draw(
+                ctx,
+                &score_1,
+                (
+                    na::Point2::new(SCREEN_WIDTH / 2.0 - 50.0, SCREEN_HEIGHT / 3.0),
+                    0.0,
+                    graphics::WHITE,
+                ),
+            )?;
+            graphics::draw(
+                ctx,
+                &score_2,
+                (
+                    na::Point2::new(SCREEN_WIDTH / 2.0 + 30.0, SCREEN_HEIGHT / 3.0),
+                    0.0,
+                    graphics::WHITE,
+                ),
+            )?;
+        }
 
         graphics::present(ctx)?;
         Ok(())
@@ -191,8 +191,6 @@ impl EventHandler for MainState {
             } else {
                 self.game_state = "start".to_owned();
             }
-
-            println!("{}", self.game_state);
         }
     }
 }
