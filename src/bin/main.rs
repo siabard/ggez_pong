@@ -67,6 +67,17 @@ impl MainState {
         };
         Ok(s)
     }
+
+    fn display_fps(&self, ctx: &mut Context) {
+        let font = graphics::Font::new(ctx, "/NanumGothic.ttf").unwrap();
+        let fps = ggez::timer::fps(ctx);
+        let fps_message = graphics::Text::new((fps.to_string(), font, 12.0));
+
+        let dest_point = na::Point2::new(10., 10.);
+        graphics::draw(ctx, &fps_message, (dest_point, 0.0, graphics::Color::from_rgba(0, 255, 0, 255))).unwrap();
+
+
+    }
 }
 
 impl EventHandler for MainState {
@@ -92,6 +103,8 @@ impl EventHandler for MainState {
 
         if self.game_state == "play" {
             self.ball.update(dt);
+            self.ball.collides(&self.player_1, SCREEN_HEIGHT);
+            self.ball.collides(&self.player_2, SCREEN_HEIGHT);
         }
 
         self.player_1.update(dt);
@@ -146,6 +159,7 @@ impl EventHandler for MainState {
             )?;
         }
 
+        self.display_fps(ctx);
         graphics::present(ctx)?;
         Ok(())
     }
@@ -183,8 +197,10 @@ pub fn main() -> GameResult {
 
     // Filter
     let cb = ContextBuilder::new("Pong", "ggez").add_resource_path(resource_dir);
+
     let (ctx, event_loop) = &mut cb
-        .window_mode(ggez::conf::WindowMode::default().dimensions(SCREEN_WIDTH, SCREEN_HEIGHT))
+        .window_mode(ggez::conf::WindowMode::default().dimensions(SCREEN_WIDTH, SCREEN_HEIGHT).fullscreen_type(ggez::conf::FullscreenType::True))
+        .window_setup(ggez::conf::WindowSetup::default().title("Pong: ggez"))
         .build()?;
 
     let state = &mut MainState::new(ctx)?;

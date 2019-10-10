@@ -3,11 +3,11 @@ use rand::prelude::*;
 use std::cmp;
 
 pub struct Paddle {
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-    dy: f32,
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+    pub dy: f32,
     max_x: f32,
     max_y: f32,
 }

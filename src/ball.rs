@@ -1,5 +1,6 @@
 use ggez::{graphics, Context, GameResult};
 use rand::prelude::*;
+use crate::paddle::Paddle;
 
 pub struct Ball {
     x: f32,
@@ -58,5 +59,29 @@ impl Ball {
         graphics::draw(ctx, &rect, graphics::DrawParam::default())?;
 
         Ok(())
+    }
+
+    pub fn collides(&mut self, paddle: &Paddle, max_y: f32) {
+        if self.x <= paddle.x + paddle.width &&
+            self.x + self.width >= paddle.x &&
+            self.y <= paddle.y + paddle.height &&
+            self.y + self.height >= paddle.y {
+                // collision
+                self.dx = -self.dx * 1.03;
+                self.x = paddle.x + self.dx;
+
+                let mut rng = rand::thread_rng();
+
+
+                if self.dy < 0. {
+                    self.dy = -1. * rng.gen_range(10., 150.);
+                } else {
+                    self.dy = rng.gen_range(10., 150.);
+                }
+            }
+
+        if self.y <= 0. || self.y >= max_y {
+            self.dy = self.dy * -1.;
+        }
     }
 }
