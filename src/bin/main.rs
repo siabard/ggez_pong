@@ -20,17 +20,22 @@ const SCREEN_HEIGHT: f32 = 240.0;
 /// Paddle
 const PADDLE_SPEED: f32 = 200.0;
 
+#[derive(PartialEq)]
+enum PlayerSide {
+    LEFT,
+    RIGHT,
+}
+
 /// Game state
 struct MainState {
     message: graphics::Text,
-
+    font: graphics::Font,
     player_score_1: u32,
     player_score_2: u32,
-
+    serve: PlayerSide,
     player_1: paddle::Paddle,
     player_2: paddle::Paddle,
     ball: ball::Ball,
-
     game_state: String,
 }
 
@@ -64,23 +69,21 @@ impl MainState {
         let game_state = "start".to_owned();
         let s = MainState {
             message,
-
+            font,
             player_score_1,
             player_score_2,
-
+            serve: PlayerSide::LEFT,
             player_1,
             player_2,
             ball,
-
             game_state,
         };
         Ok(s)
     }
 
     fn display_fps(&self, ctx: &mut Context) {
-        let font = graphics::Font::new(ctx, "/NanumGothic.ttf").unwrap();
         let fps = ggez::timer::fps(ctx);
-        let fps_message = graphics::Text::new((fps.to_string(), font, 12.0));
+        let fps_message = graphics::Text::new((fps.to_string(), self.font, 12.0));
 
         let dest_point = na::Point2::new(10., 10.);
         graphics::draw(
@@ -118,6 +121,22 @@ impl EventHandler for MainState {
             self.ball.collides(&self.player_1);
             self.ball.collides(&self.player_2);
             self.ball.bounce(SCREEN_HEIGHT);
+
+            let ball_check_out = self.ball.check_out(SCREEN_WIDTH);
+            if ball_check_out == ball::BallOutDirection::LEFT {
+                // Left player lose (player_1 lose)
+                self.player_score_2 = self.player_score_2 + 1;
+                self.ball
+                    .reset(SCREEN_WIDTH, SCREEN_HEIGHT, ball::BallOutDirection::LEFT);
+                self.game_state = "serve".to_owned();
+                self.serve = PlayerSide::RIGHT;
+            } else if ball_check_out == ball::BallOutDirection::RIGHT {
+                self.player_score_1 = self.player_score_1 + 1;
+                self.ball
+                    .reset(SCREEN_WIDTH, SCREEN_HEIGHT, ball::BallOutDirection::RIGHT);
+                self.game_state = "serve".to_owned();
+                self.serve = PlayerSide::LEFT;
+            }
         }
 
         self.player_1.update(dt);
@@ -131,12 +150,19 @@ impl EventHandler for MainState {
         graphics::clear(ctx, [40. / 255., 45. / 255., 52. / 255., 1.0].into());
 
         // 화면에 출력하는 부분
-        let font = graphics::Font::new(ctx, "/NanumGothic.ttf")?;
-        self.message = graphics::Text::new((
-            "Hello ".to_owned() + &self.game_state + " state",
-            font,
-            12.0,
-        ));
+        self.message = if self.game_state == "serve" {
+            if self.serve == PlayerSide::LEFT {
+                graphics::Text::new(("Player 1 serve state".to_string(), self.font, 12.0))
+            } else {
+                graphics::Text::new(("Player 2 serve state".to_string(), self.font, 12.0))
+            }
+        } else {
+            graphics::Text::new((
+                "Hello ".to_owned() + &self.game_state + " state",
+                self.font,
+                12.0,
+            ))
+        };
         let span = *&self.message.width(ctx) as f32;
         let dest_point = na::Point2::new((SCREEN_WIDTH - span) / 2.0, 20.0);
         graphics::draw(ctx, &self.message, (dest_point, 0.0, graphics::WHITE))?;
@@ -148,9 +174,9 @@ impl EventHandler for MainState {
 
         // 점수를 출력하는 부분
 
-        if self.game_state == "start" {
-            let score_1 = graphics::Text::new((self.player_score_1.to_string(), font, 40.0));
-            let score_2 = graphics::Text::new((self.player_score_2.to_string(), font, 40.0));
+        if self.game_state == "start" || self.game_state == "serve" {
+            let score_1 = graphics::Text::new((self.player_score_1.to_string(), self.font, 40.0));
+            let score_2 = graphics::Text::new((self.player_score_2.to_string(), self.font, 40.0));
 
             graphics::draw(
                 ctx,
@@ -189,7 +215,7 @@ impl EventHandler for MainState {
         }
 
         if keycode == KeyCode::Return {
-            if self.game_state == "start" {
+            if self.game_state == "start" || self.game_state == "serve" {
                 self.game_state = "play".to_owned();
             } else {
                 self.game_state = "start".to_owned();

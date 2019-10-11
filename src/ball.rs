@@ -11,6 +11,13 @@ pub struct Ball {
     dy: f32,
 }
 
+#[derive(PartialEq)]
+pub enum BallOutDirection {
+    LEFT,
+    RIGHT,
+    NONE,
+}
+
 impl Ball {
     pub fn new(x: f32, y: f32, width: f32, height: f32) -> Ball {
         let mut rng = rand::thread_rng();
@@ -30,14 +37,22 @@ impl Ball {
         }
     }
 
-    pub fn reset(&mut self, screen_width: f32, screen_height: f32) {
+    pub fn reset(&mut self, screen_width: f32, screen_height: f32, direction: BallOutDirection) {
         let mut rng = rand::thread_rng();
         self.x = (screen_width - self.width) / 2.0;
         self.y = (screen_height - self.height) / 2.0;
-        let dx: f32 = match rng.gen_range(0, 2) {
-            1 => 100.,
-            _ => -100.,
+        let dx: f32 = if direction == BallOutDirection::NONE {
+            match rng.gen_range(0, 2) {
+                1 => 100.,
+                _ => -100.,
+            }
+        } else {
+            match direction {
+                BallOutDirection::LEFT => -100.,
+                _ => 100.,
+            }
         };
+
         let dy: f32 = rng.gen_range(-50., 50.) * 1.5;
 
         self.dx = dx;
@@ -90,6 +105,16 @@ impl Ball {
             } else {
                 self.dy = rng.gen_range(10., 150.);
             }
+        }
+    }
+
+    pub fn check_out(&mut self, max_x: f32) -> BallOutDirection {
+        if self.x <= -self.width {
+            BallOutDirection::LEFT
+        } else if self.x > max_x {
+            BallOutDirection::RIGHT
+        } else {
+            BallOutDirection::NONE
         }
     }
 }
