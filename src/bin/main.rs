@@ -139,6 +139,10 @@ impl EventHandler for MainState {
             }
         }
 
+        if self.player_score_1 > 3 || self.player_score_2 > 3 {
+            self.game_state = "done".to_owned();
+        }
+
         self.player_1.update(dt);
         self.player_2.update(dt);
 
@@ -156,13 +160,16 @@ impl EventHandler for MainState {
             } else {
                 graphics::Text::new(("Player 2 serve state".to_string(), self.font, 12.0))
             }
-        } else {
+        } else if self.game_state != "done" {
             graphics::Text::new((
                 "Hello ".to_owned() + &self.game_state + " state",
                 self.font,
                 12.0,
             ))
+        } else {
+            graphics::Text::new(("", self.font, 12.0))
         };
+
         let span = *&self.message.width(ctx) as f32;
         let dest_point = na::Point2::new((SCREEN_WIDTH - span) / 2.0, 20.0);
         graphics::draw(ctx, &self.message, (dest_point, 0.0, graphics::WHITE))?;
@@ -196,6 +203,12 @@ impl EventHandler for MainState {
                     graphics::WHITE,
                 ),
             )?;
+        } else if self.game_state == "done" {
+            graphics::draw(
+                ctx,
+                &graphics::Text::new(("Press Enter to restart!".to_string(), self.font, 12.0)),
+                (dest_point, 0.0, graphics::WHITE),
+            )?;
         }
 
         self.display_fps(ctx);
@@ -217,7 +230,13 @@ impl EventHandler for MainState {
         if keycode == KeyCode::Return {
             if self.game_state == "start" || self.game_state == "serve" {
                 self.game_state = "play".to_owned();
-            } else {
+            } else if self.game_state == "play" {
+                self.game_state = "start".to_owned();
+            } else if self.game_state == "done" {
+                self.player_score_1 = 0;
+                self.player_score_2 = 0;
+                self.ball
+                    .reset(SCREEN_WIDTH, SCREEN_HEIGHT, ball::BallOutDirection::NONE);
                 self.game_state = "start".to_owned();
             }
         }
