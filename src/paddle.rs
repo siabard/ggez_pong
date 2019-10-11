@@ -10,10 +10,25 @@ pub struct Paddle {
     pub dy: f32,
     max_x: f32,
     max_y: f32,
+    pub direction: PaddleDirection,
+}
+
+#[derive(PartialEq, Debug)]
+pub enum PaddleDirection {
+    RIGHT,
+    LEFT,
 }
 
 impl Paddle {
-    pub fn new(x: f32, y: f32, width: f32, height: f32, max_x: f32, max_y: f32) -> Paddle {
+    pub fn new(
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+        max_x: f32,
+        max_y: f32,
+        direction: PaddleDirection,
+    ) -> Paddle {
         Paddle {
             x,
             y,
@@ -22,6 +37,7 @@ impl Paddle {
             dy: 0.,
             max_x,
             max_y,
+            direction,
         }
     }
 
